@@ -28,7 +28,7 @@
     'depends': [
         'mail',
         # 'web_widget_many2many_tags_multi_selection',
-        'server_mode',
+        #'server_mode',
         # 'web_ir_actions_act_window_message',
     ],
     'external_dependencies': {

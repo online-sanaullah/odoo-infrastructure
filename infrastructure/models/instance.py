@@ -3,8 +3,8 @@
 # For copyright and license notices, see __openerp__.py file in module root
 # directory
 ##############################################################################
-from openerp import models, fields, api, _
-from openerp.exceptions import except_orm, ValidationError
+from odoo import models, fields, api, _
+from odoo.exceptions import ValidationError, except_orm
 from .server import custom_sudo as sudo
 from fabric.contrib.files import exists, append, sed
 from erppeek import Client
@@ -169,6 +169,7 @@ class instance(models.Model):
         required=True,
         readonly=True,
         states={'draft': [('readonly', False)]},
+        default='admin'
         )
     unaccent = fields.Boolean(
         string='Enable Unaccent',
@@ -592,7 +593,7 @@ class instance(models.Model):
         self.docker_image_ids = [
             x.docker_image_id.id for x in (
                 self.server_id.server_docker_image_ids)]
-
+    
     @api.one
     @api.depends(
         'database_type_id.prefix',
@@ -930,8 +931,10 @@ class instance(models.Model):
         odoo_port_links = (
             '-p 127.0.0.1:%i:8069 -p 127.0.0.1:%i:8072') % (
             self.xml_rpc_port, self.longpolling_port)
-        odoo_volume_links = '-v %s:%s ' % (
-            self.data_dir, self.odoo_image_id.odoo_data_dir)
+        odoo_volume_links = ''
+        if self.odoo_image_id.odoo_data_dir:
+            odoo_volume_links += '-v %s:%s ' % (
+                self.data_dir, self.odoo_image_id.odoo_data_dir)
 
         if self.odoo_image_id.odoo_etc_dir:
             odoo_volume_links += '-v %s:%s ' % (

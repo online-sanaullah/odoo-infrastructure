@@ -3,9 +3,9 @@
 # For copyright and license notices, see __openerp__.py file in module root
 # directory
 ##############################################################################
-from openerp import models, fields, api, SUPERUSER_ID, _
-from openerp.exceptions import except_orm
-from openerp.tools.parse_version import parse_version
+from odoo import models, fields, api, SUPERUSER_ID, _
+from odoo.exceptions import except_orm
+from odoo.tools.parse_version import parse_version
 import xmlrpclib
 import operator
 import socket
@@ -14,13 +14,13 @@ import urllib
 import time
 import uuid
 from dateutil.relativedelta import relativedelta
-from openerp.addons.server_mode.mode import get_mode
+#from odoo.addons.server_mode.mode import get_mode
 from datetime import datetime
 from datetime import date
 from .server import custom_sudo as sudo
 from fabric.contrib.files import exists, append, sed
 from erppeek import Client
-from openerp.exceptions import ValidationError
+from odoo.exceptions import ValidationError
 import os
 import requests
 import simplejson
@@ -340,12 +340,12 @@ class database(models.Model):
     def cron_check_databases(self):
         # TODO mejorar y solo verificar las que no fueron verificadas en el
         # ultimo intervalo de cron
-        if get_mode():
-            _logger.info(
-                'Check databases cron is disable by server_mode. '
-                'If you want to enable it you should remove develop or test '
-                'value for server_mode key on openerp server config file')
-            return False
+#         if get_mode():
+#             _logger.info(
+#                 'Check databases cron is disable by server_mode. '
+#                 'If you want to enable it you should remove develop or test '
+#                 'value for server_mode key on openerp server config file')
+#             return False
         databases = self.with_context(
             do_not_raise=True).search([
                 ('check_database', '=', True),
@@ -1065,7 +1065,7 @@ class database(models.Model):
         new_db = self.copy({
             'name': new_database_name,
             'backups_enable': backups_enable,
-            'issue_date': fields.Date.today(),
+        'issue_date': fields.Date.today()
             # 'database_type_id': database_type.id,
         })
         try:

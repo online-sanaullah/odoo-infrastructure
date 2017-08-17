@@ -3,8 +3,8 @@
 # For copyright and license notices, see __openerp__.py file in module root
 # directory
 ##############################################################################
-from openerp import models, fields, api, _
-from openerp.exceptions import ValidationError
+from odoo import models, fields, api, _
+from odoo.exceptions import ValidationError
 from fabtools import require
 import os
 
@@ -93,12 +93,15 @@ class server_hostname(models.Model):
                 # "/(.*)tuukan\.com$/"
         self.domain_regex = domain_regex
 
-    def name_get(self, cr, uid, ids, context=None):
-        if not ids:
+    def name_get(self):
+        ids = []
+        if not self.ids:
             return []
-        if isinstance(ids, (int, long)):
-            ids = [ids]
-        reads = self.read(cr, uid, ids, ['name', 'wildcard'], context=context)
+        if isinstance(self.ids, (int, long)):
+            ids = [self.ids]
+        else:
+            ids = self.ids
+        reads = self.search_read([('id', 'in',ids)], ['name', 'wildcard'])
         res = []
         for record in reads:
             name = record['name']

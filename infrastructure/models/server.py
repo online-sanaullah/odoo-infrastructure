@@ -3,8 +3,9 @@
 # For copyright and license notices, see __openerp__.py file in module root
 # directory
 ##############################################################################
-from openerp import models, fields, api, _
-from openerp.exceptions import except_orm, ValidationError
+from odoo import models, fields, api, _
+#from odoo.exceptions import ValidationError
+from odoo.exceptions import UserError, RedirectWarning, ValidationError, except_orm
 from fabric.api import env, reboot
 from fabric.contrib.files import append, upload_template
 from fabric.api import sudo
