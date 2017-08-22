@@ -84,11 +84,11 @@
                         <label for="admin_pass"/>
                         <div>
                             <!-- lo sacamos porque por mas que este invisible lo actualiza -->
-                            <!-- <field
+                            <field
                                 name="admin_pass"
                                 password="True"
                                 class="oe_inline"
-                                groups="base.group_no_one"/> -->
+                                groups="base.group_no_one"/>
                             <button name="show_passwd"
                                 string="⇒ View Password"
                                 type="object"
