@@ -525,7 +525,8 @@ class server(models.Model):
                 "* Server Codename: %s\n"
                 "* Server Configuration Codename: %s") % (
                 server_codename, server_conf_codename))
-        self.number_of_processors = fabtools.system.cpus()
+        result_proc_count = sudo('grep -c ^processor /proc/cpuinfo')
+        self.number_of_processors = result_proc_count
         self.add_images()
         self.action_to_install()
 
@@ -665,6 +666,14 @@ class server(models.Model):
 
     @api.multi
     def action_to_install(self):
+        self.test_connection(no_prompt=True)
+        if self.server_configuration_id:
+            if self.server_configuration_id.install_command_ids:
+                for command_rec in self.server_configuration_id.install_command_ids:
+                    if command_rec.command:
+                        print 'Executing command on the target machine ', command_rec.command
+                        command_result = sudo(command_rec.command)
+                        print 'Command Result ', command_result
         self.write({'state': 'to_install'})
 
     @api.multi
