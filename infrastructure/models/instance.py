@@ -929,7 +929,7 @@ class instance(models.Model):
         pg_volume_links = (
             '-v %s:/var/lib/postgresql/data' % self.pg_data_path)
         odoo_port_links = (
-            '-p 127.0.0.1:%i:8069 -p 127.0.0.1:%i:8072') % (
+            '-p %i:8069 -p %i:8072') % (
             self.xml_rpc_port, self.longpolling_port)
         odoo_volume_links = ''
         if self.odoo_image_id.odoo_data_dir:
