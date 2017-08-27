@@ -17,49 +17,16 @@ class infrastructure_docker_image(models.Model):
     prefix = fields.Char(
         'Prefix',
     )
-    pull_name = fields.Char(
-        'Pull Name',
-        required=True,
-    )
-    tag_ids = fields.One2many(
-        'infrastructure.docker_image.tag',
-        'docker_image_id',
-        'Tags',
-    )
-    odoo_version_id = fields.Many2one(
-        'infrastructure.odoo_version',
-        'Odoo Version',
-    )
-    service = fields.Selection(
-        [('odoo', 'Odoo'), ('postgresql', 'Postgresql'), ('other', 'Other')],
-        string='Service',
-        default='odoo',
-        required=True,
-    )
-    pg_image_ids = fields.Many2many(
-        'infrastructure.docker_image',
-        'infrastructure_odoo_pg_image_rel',
-        'odoo_image_id', 'pg_image_id',
-        string='Postgresql Images',
-        domain=[('service', '=', 'postgresql')],
-        help='Compatible Postgresql Images',
-    )
-    odoo_image_ids = fields.Many2many(
-        'infrastructure.docker_image',
-        'infrastructure_odoo_pg_image_rel',
-        'pg_image_id', 'odoo_image_id',
-        string='Odoo Images',
-        domain=[('service', '=', 'odoo')],
-        help='Compatible Odoo Images',
-    )
-    odoo_data_dir = fields.Char(
-    )
-    odoo_extra_addons_dir = fields.Char(
-    )
-    odoo_etc_dir = fields.Char(
-    )
-    odoo_server_wide_modules = fields.Char(
-    )
+    pull_name = fields.Char('Pull Name', required=True)
+    tag_ids = fields.One2many('infrastructure.docker_image.tag', 'docker_image_id', 'Tags')
+    odoo_version_id = fields.Many2one('infrastructure.odoo_version', 'Odoo Version')
+    service = fields.Selection([('odoo', 'Odoo'), ('postgresql', 'Postgresql'), ('nginx', 'Nginx'),('other', 'Other')], string='Service', default='odoo', required=True)
+    pg_image_ids = fields.Many2many('infrastructure.docker_image', 'infrastructure_odoo_pg_image_rel', 'odoo_image_id', 'pg_image_id', string='Postgresql Images', domain=[('service', '=', 'postgresql')], help='Compatible Postgresql Images')
+    odoo_image_ids = fields.Many2many('infrastructure.docker_image', 'infrastructure_odoo_pg_image_rel', 'pg_image_id', 'odoo_image_id', string='Odoo Images', domain=[('service', '=', 'odoo')], help='Compatible Odoo Images')
+    odoo_data_dir = fields.Char()
+    odoo_extra_addons_dir = fields.Char()
+    odoo_etc_dir = fields.Char()
+    odoo_server_wide_modules = fields.Char()
 
 
 class infrastructure_docker_image_tag(models.Model):
