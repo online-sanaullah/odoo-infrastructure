@@ -121,7 +121,7 @@
                     </group>
                 </group>
                 <notebook>
-                    <page string="Gral. Info">
+                    <page string="General Info">
                         <group>
                             <group>
                                 <field name="postfix_hostname"/>
