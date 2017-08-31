@@ -296,7 +296,7 @@ class server(models.Model):
         self.get_env()
         # if draft state do no test http and smtp because perhups they are
         # not installed
-        if self.state not in ('draft', 'to_install'):
+        if self.state not in ('draft', 'to_install', 'active'):
             self.check_service_exist(self.ssh_port)
             # TODO activate https check, we are not using it yet
             # self.check_service_exist(self.https_port)

@@ -1262,6 +1262,7 @@ class instance(models.Model):
                 raise ValidationError(
                     'To use Secure you nead a host with SSL enable. '
                     '\nCustom certificate is not implemented yet!')
+            self.main_hostname_id.server_hostname_id.load_ssl_certficiate()
             nginx_site_file = nginx_ssl_site_template % (
                 self.name,
                 xmlrpc_port,
