@@ -420,7 +420,7 @@ class server(models.Model):
 
     @api.multi
     def action_to_install(self):
-        self.test_connection(no_prompt=True)
+        self.get_env()
         if self.server_configuration_id:
             if self.server_configuration_id.install_command_ids:
                 for command_rec in self.server_configuration_id.install_command_ids:
