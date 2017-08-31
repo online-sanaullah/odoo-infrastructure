@@ -302,8 +302,9 @@ class instance(models.Model):
     @api.one
     @api.depends('name')
     def get_container_names(self):
-        self.odoo_container = 'odoo-' + self.name
-        self.pg_container = 'db-' + self.name
+        container_name_suffix = re.sub(' +','_',self.name.lower().strip())
+        self.odoo_container = 'odoo-' + container_name_suffix
+        self.pg_container = 'db-' + container_name_suffix
 
     @api.multi
     def show_passwd(self):
