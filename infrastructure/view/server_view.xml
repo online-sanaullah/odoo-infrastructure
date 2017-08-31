@@ -199,7 +199,7 @@
                     <page string="Docker Images" states="to_install,active">
                        <field name="server_docker_image_ids"/>
                     </page>
-                    <page string="Hostnames" states="active">
+                    <page string="Hostnames" states="to_install,active">
                         <button type="object" name="configure_hosts" string="Configure Hosts" help="Add to postfix virutal domains so that you can use them in catchall and Also Load SSL Certificates" class="oe_highlight"/>
                         <field name="hostname_ids"/>
                     </page>
