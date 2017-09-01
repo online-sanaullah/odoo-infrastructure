@@ -1231,7 +1231,7 @@ class instance(models.Model):
                 self.service_file, e))
 
     @api.one
-    def update_nginx_site(self):
+    def update_nginx_site(self, instance_ip_address='127.0.0.1'):
         _logger.info("Updating nginx site")
         if not self.main_hostname:
             raise ValidationError(_(
@@ -1265,10 +1265,8 @@ class instance(models.Model):
                     '\nCustom certificate is not implemented yet!')
             self.main_hostname_id.server_hostname_id.load_ssl_certficiate()
             nginx_site_file = nginx_ssl_site_template % (
-                self.name,
-                xmlrpc_port,
-                self.name,
-                self.longpolling_port,
+                self.name, instance_ip_address, xmlrpc_port,
+                self.name, instance_ip_address, self.longpolling_port,
                 ' '.join(server_names),
                 ' '.join(server_names),
                 server_hostname_id.ssl_certificate_path,
@@ -1281,10 +1279,8 @@ class instance(models.Model):
             )
         else:
             nginx_site_file = nginx_site_template % (
-                self.name,
-                xmlrpc_port,
-                self.name,
-                self.longpolling_port,
+                self.name, instance_ip_address, xmlrpc_port,
+                self.name, instance_ip_address, self.longpolling_port,
                 # ' '.join(server_names), no redirect from http to https
                 ' '.join(server_names),
                 # server_hostname_id.ssl_certificate_path,
@@ -1393,10 +1389,10 @@ nginx_longpolling_template = """
 
 nginx_site_template = """
 upstream %s {
-    server 127.0.0.1:%i weight=1 fail_timeout=300s;
+    server %s:%i weight=1 fail_timeout=300s;
 }
 upstream %s-im {
-    server 127.0.0.1:%i weight=1 fail_timeout=300s;
+    server %s:%i weight=1 fail_timeout=300s;
 }
 server {
     listen 80;
@@ -1447,10 +1443,10 @@ server {
 
 nginx_ssl_site_template = """
 upstream %s {
-    server 127.0.0.1:%i weight=1 fail_timeout=300s;
+    server %s:%i weight=1 fail_timeout=300s;
 }
 upstream %s-im {
-    server 127.0.0.1:%i weight=1 fail_timeout=300s;
+    server %s:%i weight=1 fail_timeout=300s;
 }
 server {
     listen 80;
