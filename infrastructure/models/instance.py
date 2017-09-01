@@ -1254,7 +1254,7 @@ class instance(models.Model):
         
         xmlrpc_port = self.xml_rpc_port
         if instance_xmlrpc_port:
-            xmlrpc_port = xmlrpc_port
+            xmlrpc_port = instance_xmlrpc_port
         
         longpolling_port = self.longpolling_port
         if instance_longpolling_port:
