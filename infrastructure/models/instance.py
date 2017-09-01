@@ -1231,7 +1231,7 @@ class instance(models.Model):
                 self.service_file, e))
 
     @api.one
-    def update_nginx_site(self, instance_ip_address='127.0.0.1'):
+    def update_nginx_site(self, instance_ip_address='127.0.0.1', instance_xmlrpc_port=None, instance_longpolling_port=None):
         _logger.info("Updating nginx site")
         if not self.main_hostname:
             raise ValidationError(_(
@@ -1251,8 +1251,15 @@ class instance(models.Model):
         error_log = os.path.join(
             self.environment_id.server_id.nginx_log_path,
             'error_' + re.sub('[-]', '_', self.name))
+        
         xmlrpc_port = self.xml_rpc_port
-
+        if instance_xmlrpc_port:
+            xmlrpc_port = xmlrpc_port
+        
+        longpolling_port = self.longpolling_port
+        if instance_longpolling_port:
+            longpolling_port = instance_longpolling_port
+        
         # we only use longpolling if workers is set
         longpolling = (
             self.workers and nginx_longpolling_template % self.name or '')
@@ -1266,7 +1273,7 @@ class instance(models.Model):
             self.main_hostname_id.server_hostname_id.load_ssl_certficiate()
             nginx_site_file = nginx_ssl_site_template % (
                 self.name, instance_ip_address, xmlrpc_port,
-                self.name, instance_ip_address, self.longpolling_port,
+                self.name, instance_ip_address, longpolling_port,
                 ' '.join(server_names),
                 ' '.join(server_names),
                 server_hostname_id.ssl_certificate_path,
