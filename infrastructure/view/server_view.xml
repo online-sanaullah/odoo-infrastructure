@@ -120,6 +120,7 @@
                         <field name="holder_id"/>
                     </group>
                 </group>
+                <field name="docker_image_ids" invisible="True"/>
                 <notebook>
                     <page string="General Info">
                         <group>
