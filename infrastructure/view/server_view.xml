@@ -76,8 +76,8 @@
                         <field name="database_count" widget="statinfo"/>
                     </button>
                     <button icon="fa-sun-o " type="object" string="Activate" class="oe_stat_button" help="Test connection, check distribution, get processors data and activate" name="get_data_and_activate" states="draft"/>
-                    <button name="reboot_server" icon="fa-refresh" string="Reboot Server" class="oe_stat_button" help="Reboot Server" confirm="Are you sure you want to reboot the server?" states="to_install,active"/>
-                    <button name="restart_nginx" icon="fa-refresh" string="Restart Nginx" class="oe_stat_button" help="Restart Nginx" confirm="Are you sure you want to restart nxginx?" states="to_install,active"/>
+                    <button name="reboot_server" type="object" icon="fa-refresh" string="Reboot Server" class="oe_stat_button" help="Reboot Server" confirm="Are you sure you want to reboot the server?" states="to_install,active"/>
+                    <button name="restart_nginx" type="object" icon="fa-refresh" string="Restart Nginx" class="oe_stat_button" help="Restart Nginx" confirm="Are you sure you want to restart nxginx?" states="to_install,active"/>
                 </div>
                 <h1>
                     <field name="name" placeholder="Name..."/>

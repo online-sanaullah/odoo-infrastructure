@@ -870,7 +870,7 @@ class database(models.Model):
         _logger.info("Creating db '%s'" % (self.name))
         client = self.get_client(not_database=True)
         lang = self.instance_type_id.install_lang_id or 'en_US'
-        if self.environment_id.odoo_version_id.name == '9.0':
+        if self.environment_id.odoo_version_id.name in ['9.0','10.0']:
             # improove this and make country code a parameter
             client.db.create_database(
                 self.instance_id.admin_pass,
