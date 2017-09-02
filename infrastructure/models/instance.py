@@ -302,9 +302,10 @@ class instance(models.Model):
     @api.one
     @api.depends('name')
     def get_container_names(self):
-        container_name_suffix = re.sub(' +','_',self.name.lower().strip())
-        self.odoo_container = 'odoo-' + container_name_suffix
-        self.pg_container = 'db-' + container_name_suffix
+        if self.name:
+            container_name_suffix = re.sub(' +','-',self.name.lower().strip())
+            self.odoo_container = 'odoo-' + container_name_suffix
+            self.pg_container = 'db-' + container_name_suffix
 
     @api.multi
     def show_passwd(self):
@@ -1136,47 +1137,52 @@ class instance(models.Model):
 
     @api.one
     def run_odoo_service(self):
-        self.environment_id.server_id.get_env()
-        _logger.info("Running Odoo Service %s " % self.name)
-        sudo(self.run_odoo_cmd)
-        if self.odoo_service_state == 'restart_required':
-            self.odoo_service_state = 'ok'
+        if self.odoo_container:
+            self.environment_id.server_id.get_env()
+            _logger.info("Running Odoo Service %s " % self.name)
+            sudo(self.run_odoo_cmd)
+            if self.odoo_service_state == 'restart_required':
+                self.odoo_service_state = 'ok'
 
     @api.one
     def restart_odoo_service(self):
-        self.environment_id.server_id.get_env()
-        _logger.info("Restarting Odoo Service %s " % self.name)
-        sudo(self.restart_odoo_cmd)
-        if self.odoo_service_state == 'restart_required':
-            self.odoo_service_state = 'ok'
+        if self.odoo_container:
+            self.environment_id.server_id.get_env()
+            _logger.info("Restarting Odoo Service %s " % self.name)
+            sudo(self.restart_odoo_cmd)
+            if self.odoo_service_state == 'restart_required':
+                self.odoo_service_state = 'ok'
 
     @api.one
     def remove_odoo_service(self):
-        # first stop
-        self.stop_odoo_service()
-        # then delete
-        _logger.info("Removing Odoo Service %s " % self.name)
-        try:
-            sudo(self.remove_odoo_cmd)
-        except:
-            _logger.warning(("Could remove container '%s'") % (
-                self.name))
+        if self.odoo_container:
+            # first stop
+            self.stop_odoo_service()
+            # then delete
+            _logger.info("Removing Odoo Service %s " % self.name)
+            try:
+                sudo(self.remove_odoo_cmd)
+            except:
+                _logger.warning(("Could remove container '%s'") % (
+                    self.name))
 
     @api.one
     def stop_odoo_service(self):
-        self.environment_id.server_id.get_env()
-        _logger.info("Stopping Odoo Service %s " % self.name)
-        try:
-            sudo(self.stop_odoo_cmd)
-        except:
-            _logger.warning(("Could stop container '%s'") % (
-                self.stop_odoo_cmd))
+        if self.odoo_container:
+            self.environment_id.server_id.get_env()
+            _logger.info("Stopping Odoo Service %s " % self.name)
+            try:
+                sudo(self.stop_odoo_cmd)
+            except:
+                _logger.warning(("Could stop container '%s'") % (
+                    self.stop_odoo_cmd))
 
     @api.one
     def run_pg_service(self):
-        self.environment_id.server_id.get_env()
-        _logger.info("Running Postgresql Service %s" % self.name)
-        sudo(self.run_pg_cmd)
+        if self.pg_container:
+            self.environment_id.server_id.get_env()
+            _logger.info("Running Postgresql Service %s" % self.name)
+            sudo(self.run_pg_cmd)
 
     # depreciated, use restart instead
     # @api.one
@@ -1187,31 +1193,34 @@ class instance(models.Model):
 
     @api.one
     def restart_pg_service(self):
-        self.environment_id.server_id.get_env()
-        _logger.info("Restarting Postgresql Service %s" % self.name)
-        sudo(self.restart_pg_cmd)
+        if self.pg_container:
+            self.environment_id.server_id.get_env()
+            _logger.info("Restarting Postgresql Service %s" % self.name)
+            sudo(self.restart_pg_cmd)
 
     @api.one
     def remove_pg_service(self):
-        # first stop
-        self.stop_pg_service()
-        # then delete
-        _logger.info("Removing Posgresql Service %s " % self.name)
-        try:
-            sudo(self.remove_pg_cmd)
-        except:
-            _logger.warning(("Could remove container '%s'") % (
-                self.name))
+        if self.pg_container:
+            # first stop
+            self.stop_pg_service()
+            # then delete
+            _logger.info("Removing Posgresql Service %s " % self.name)
+            try:
+                sudo(self.remove_pg_cmd)
+            except:
+                _logger.warning(("Could remove container '%s'") % (
+                    self.name))
 
     @api.one
     def stop_pg_service(self):
-        self.environment_id.server_id.get_env()
-        _logger.info("Stopping Postgresql Service %s " % self.name)
-        try:
-            sudo(self.stop_pg_cmd)
-        except:
-            _logger.warning(("Could stop container '%s'") % (
-                self.stop_pg_cmd))
+        if self.pg_container:
+            self.environment_id.server_id.get_env()
+            _logger.info("Stopping Postgresql Service %s " % self.name)
+            try:
+                sudo(self.stop_pg_cmd)
+            except:
+                _logger.warning(("Could stop container '%s'") % (
+                    self.stop_pg_cmd))
 
     @api.one
     def delete_nginx_site(self):
@@ -1254,7 +1263,7 @@ class instance(models.Model):
         
         xmlrpc_port = self.xml_rpc_port
         if instance_xmlrpc_port:
-            xmlrpc_port = xmlrpc_port
+            xmlrpc_port = instance_xmlrpc_port
         
         longpolling_port = self.longpolling_port
         if instance_longpolling_port:

@@ -170,7 +170,14 @@ class server(models.Model):
     virtual_domains_regex_path = fields.Char(string='Virtual Domain Regex Path', readonly=True, required=True, states={'draft': [('readonly', False)]},
         help='Virtual Domain Regex Path For Postfix Catch All Configuration', default='/etc/postfix/virtual_domains_regex')
     postfix_hostname = fields.Char(string='Postfix Hostname', readonly=True, states={'draft': [('readonly', False)]})
+    docker_image_ids = fields.Many2many('infrastructure.docker_image', string='Docker Images Referenced', compute='_get_docker_images')
     _sql_constraints = [('name_uniq', 'unique(name)', 'Server Name must be unique!')]
+    
+    @api.one
+    @api.depends('server_docker_image_ids')
+    def _get_docker_images(self):
+        self.docker_image_ids = self.env['infrastructure.docker_image']
+        self.docker_image_ids = [x.docker_image_id.id for x in (self.server_docker_image_ids)]
 
     @api.one
     @api.constrains('key_filename', 'password')
