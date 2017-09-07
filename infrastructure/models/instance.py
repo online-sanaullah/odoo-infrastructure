@@ -522,6 +522,10 @@ class instance(models.Model):
                 self.environment_id.path, path_sufix)
             conf_path = os.path.join(base_path, 'config')
             pg_data_path = os.path.join(base_path, 'postgresql')
+            if self.pg_container:
+                if self.pg_image_id:
+                    if self.pg_image_tag_id:
+                        pg_data_path = os.path.join(pg_data_path, self.pg_image_tag_id.name)
             backups_path = os.path.join(
                 self.server_id.backups_path,
                 self.environment_id.name,
@@ -600,7 +604,7 @@ class instance(models.Model):
             self.update_conf_file()
         self.run_odoo_service()
         self.action_activate()
-
+    
     @api.one
     def get_commands(self):
 
@@ -1047,9 +1051,7 @@ class instance(models.Model):
                 "Can not create/update configuration file, "
                 "this is what we get: \n %s") % (
                 e))
-        sed(self.conf_file_path,
-            '(admin_passwd).*', 'admin_passwd = ' + self.admin_pass,
-            use_sudo=True)
+        sed(self.conf_file_path, '(admin_passwd).*', 'admin_passwd = ' + self.admin_pass, use_sudo=True)
 
         # add aeroo conf to server conf
         # we run append first to ensure key exist and then sed
