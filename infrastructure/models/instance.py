@@ -1036,6 +1036,7 @@ class instance(models.Model):
 
     @api.one
     def update_conf_file(self):
+        use_aeroo_docs = False
         _logger.info("Updating conf file")
         self.environment_id.server_id.get_env()
 
@@ -1061,76 +1062,52 @@ class instance(models.Model):
                 "Running update conf command: '%s'" % self.update_conf_cmd)
             sudo(self.update_conf_cmd)
         except Exception, e:
-            raise ValidationError(_(
-                "Can not create/update configuration file, "
-                "this is what we get: \n %s") % (
-                e))
+            raise ValidationError(_("Can not create/update configuration file, this is what we get: \n %s") % (e))
         
         sed(self.conf_file_path, '(admin_passwd).*', 'admin_passwd = ' + self.admin_pass, use_sudo=True)
+        if self.odoo_image_id.prefix:
+            if ':aeroo' in self.odoo_image_id.prefix:                
+                use_aeroo_docs = True
+        
+        if use_aeroo_docs:
+            # add aeroo conf to server conf
+            # we run append first to ensure key exist and then sed
+            append(self.conf_file_path, 'aeroo.docs_enabled = ', partial=True, use_sudo=True)
+            server_mode_value = self.database_type_id.server_mode_value or ''
+            sed(self.conf_file_path, '(aeroo.docs_enabled).*', 'aeroo.docs_enabled = True', use_sudo=True)
 
-        # add aeroo conf to server conf
-        # we run append first to ensure key exist and then sed
-        append(
-            self.conf_file_path,
-            'aeroo.docs_enabled = ', partial=True, use_sudo=True)
+            append(self.conf_file_path, 'aeroo.docs_host = ', partial=True, use_sudo=True)
+            server_mode_value = self.database_type_id.server_mode_value or ''
+            sed(self.conf_file_path, '(aeroo.docs_host).*', 'aeroo.docs_host = aeroo', use_sudo=True)
+        
+        add_certificates = False
+        if exists(self.server_id.afip_homo_pkey_file, use_sudo=True) and exists(self.server_id.afip_homo_cert_file, use_sudo=True) and exists(self.server_id.afip_prod_pkey_file, use_sudo=True) \
+            and exists(self.server_id.afip_prod_cert_file, use_sudo=True):
+            add_certificates = True
+            
         server_mode_value = self.database_type_id.server_mode_value or ''
-        sed(self.conf_file_path,
-            '(aeroo.docs_enabled).*', 'aeroo.docs_enabled = True',
-            use_sudo=True)
-
-        append(
-            self.conf_file_path,
-            'aeroo.docs_host = ', partial=True, use_sudo=True)
-        server_mode_value = self.database_type_id.server_mode_value or ''
-        sed(self.conf_file_path,
-            '(aeroo.docs_host).*', 'aeroo.docs_host = aeroo',
-            use_sudo=True)
-
-        # add certificates to server conf
-        # we run append first to ensure key exist and then sed
-        append(
-            self.conf_file_path,
-            'server_mode = ', partial=True, use_sudo=True)
-        server_mode_value = self.database_type_id.server_mode_value or ''
-        sed(self.conf_file_path,
-            '(server_mode).*', 'server_mode = %s' % server_mode_value,
-            use_sudo=True)
-
-        append(
-            self.conf_file_path,
-            'afip_homo_pkey_file = ', partial=True, use_sudo=True)
-        if self.server_id.afip_homo_pkey_file:
-            sed(self.conf_file_path,
-                '(afip_homo_pkey_file).*',
-                'afip_homo_pkey_file = ' + self.server_id.afip_homo_pkey_file,
-                use_sudo=True)
-
-        append(
-            self.conf_file_path,
-            'afip_homo_cert_file = ', partial=True, use_sudo=True)
-        if self.server_id.afip_homo_cert_file:
-            sed(self.conf_file_path,
-                '(afip_homo_cert_file).*',
-                'afip_homo_cert_file = ' + self.server_id.afip_homo_cert_file,
-                use_sudo=True)
-
-        append(
-            self.conf_file_path,
-            'afip_prod_pkey_file = ', partial=True, use_sudo=True)
-        if self.server_id.afip_prod_pkey_file:
-            sed(self.conf_file_path,
-                '(afip_prod_pkey_file).*',
-                'afip_prod_pkey_file = ' + self.server_id.afip_prod_pkey_file,
-                use_sudo=True)
-
-        append(
-            self.conf_file_path,
-            'afip_prod_cert_file = ', partial=True, use_sudo=True)
-        if self.server_id.afip_prod_cert_file:
-            sed(self.conf_file_path,
-                '(afip_prod_cert_file).*',
-                'afip_prod_cert_file = ' + self.server_id.afip_prod_cert_file,
-                use_sudo=True)
+        if server_mode_value:
+            append(self.conf_file_path, 'server_mode = ', partial=True, use_sudo=True)
+            sed(self.conf_file_path, '(server_mode).*', 'server_mode = %s' % server_mode_value, use_sudo=True)
+        
+        if add_certificates:
+            # add certificates to server conf
+            # we run append first to ensure key exist and then sed
+            append(self.conf_file_path, 'afip_homo_pkey_file = ', partial=True, use_sudo=True)
+            if self.server_id.afip_homo_pkey_file:
+                sed(self.conf_file_path, '(afip_homo_pkey_file).*', 'afip_homo_pkey_file = ' + self.server_id.afip_homo_pkey_file, use_sudo=True)
+    
+            append(self.conf_file_path, 'afip_homo_cert_file = ', partial=True, use_sudo=True)
+            if self.server_id.afip_homo_cert_file:
+                sed(self.conf_file_path, '(afip_homo_cert_file).*', 'afip_homo_cert_file = ' + self.server_id.afip_homo_cert_file, use_sudo=True)
+    
+            append(self.conf_file_path, 'afip_prod_pkey_file = ', partial=True, use_sudo=True)
+            if self.server_id.afip_prod_pkey_file:
+                sed(self.conf_file_path, '(afip_prod_pkey_file).*', 'afip_prod_pkey_file = ' + self.server_id.afip_prod_pkey_file, use_sudo=True)
+    
+            append(self.conf_file_path, 'afip_prod_cert_file = ', partial=True, use_sudo=True)
+            if self.server_id.afip_prod_cert_file:
+                sed(self.conf_file_path, '(afip_prod_cert_file).*', 'afip_prod_cert_file = ' + self.server_id.afip_prod_cert_file, use_sudo=True)
 
     @api.one
     def run_all(self):
