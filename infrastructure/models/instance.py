@@ -12,6 +12,7 @@ import os
 import re
 import logging
 import fabtools
+from fabtools import require
 _logger = logging.getLogger(__name__)
 
 
@@ -536,7 +537,11 @@ class instance(models.Model):
                 self.environment_id.name,
                 self.database_type_id.prefix,
                 )
-            conf_file_path = os.path.join(conf_path, 'openerp-server.conf')
+            config_file_name = 'odoo.conf'
+            if self.odoo_image_id:
+                if self.odoo_image_id.odoo_config_file:
+                    config_file_name = self.odoo_image_id.odoo_config_file
+            conf_file_path = os.path.join(conf_path, config_file_name)
             logfile = os.path.join(conf_path, 'odoo.log')
             data_dir = os.path.join(base_path, 'data_dir')
             if self.sources_type == 'use_from':
@@ -551,7 +556,13 @@ class instance(models.Model):
         self.base_path = base_path
         self.conf_file_path = conf_file_path
         self.logfile = logfile
-        self.container_logfile = os.path.join('/etc/odoo/', 'odoo.log')
+        container_log_file = ''
+        if self.odoo_image_id:
+            if self.odoo_image_id.odoo_log_file:
+                container_log_file = self.odoo_image_id.odoo_log_file
+        else:
+            container_log_file = os.path.join('/var/log/odoo/', 'odoo.log')
+        self.container_logfile = container_log_file
         self.data_dir = data_dir
 
 # Actions
@@ -638,8 +649,9 @@ class instance(models.Model):
         if self.limit_time_real:
             odoo_volume_links += '-e LIMIT_TIME_REAL=%s ' % self.limit_time_real
         server_mode_value = self.database_type_id.server_mode_value
-        odoo_volume_links += '-e SERVER_MODE=%s ' % (
-            server_mode_value or '')
+        if server_mode_value:
+            odoo_volume_links += '-e SERVER_MODE=%s ' % (
+                server_mode_value or '')
         if self.module_load:
             odoo_volume_links += '-e SERVER_WIDE_MODULES=%s ' % (
                 self.module_load)
@@ -1029,12 +1041,14 @@ class instance(models.Model):
 
         # remove odoo service if exists
         self.remove_odoo_service()
-
+        
+        require.directory(self.conf_path, use_sudo=True, mode='777')
+        
         if not exists(self.environment_id.path, use_sudo=True):
             raise except_orm(_('No Environment Path!'), _(
                 "Environment path '%s' does not exists. Please create it "
                 "first!") % (self.environment_id.path))
-
+        
         # Remove file if it already exists, we do it so we can put back some
         # booelan values as unaccent
         if exists(self.conf_file_path, use_sudo=True):
@@ -1051,6 +1065,7 @@ class instance(models.Model):
                 "Can not create/update configuration file, "
                 "this is what we get: \n %s") % (
                 e))
+        
         sed(self.conf_file_path, '(admin_passwd).*', 'admin_passwd = ' + self.admin_pass, use_sudo=True)
 
         # add aeroo conf to server conf
