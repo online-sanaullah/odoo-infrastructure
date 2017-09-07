@@ -207,7 +207,7 @@
                     <page string="Changes" states="active">
                        <field name="change_ids"/>
                     </page>
-                    <page string="Data">
+                    <page string="Notes">
                        <field name="note"/>
                    </page>
                </notebook>

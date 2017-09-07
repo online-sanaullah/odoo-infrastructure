@@ -121,7 +121,7 @@
                 </group>
                 <notebook>
                     <page string="Configuration">
-                        <group>
+                        <group string="Hostname Settings">
                             <field name="type"/>
                             <field name="instance_host_ids"/>
                         </group>
