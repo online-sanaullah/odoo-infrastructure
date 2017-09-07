@@ -12,6 +12,7 @@ import os
 import re
 import logging
 import fabtools
+from fabtools import require
 _logger = logging.getLogger(__name__)
 
 
@@ -522,6 +523,10 @@ class instance(models.Model):
                 self.environment_id.path, path_sufix)
             conf_path = os.path.join(base_path, 'config')
             pg_data_path = os.path.join(base_path, 'postgresql')
+            if self.pg_container:
+                if self.pg_image_id:
+                    if self.pg_image_tag_id:
+                        pg_data_path = os.path.join(pg_data_path, self.pg_image_tag_id.name)
             backups_path = os.path.join(
                 self.server_id.backups_path,
                 self.environment_id.name,
@@ -532,7 +537,11 @@ class instance(models.Model):
                 self.environment_id.name,
                 self.database_type_id.prefix,
                 )
-            conf_file_path = os.path.join(conf_path, 'openerp-server.conf')
+            config_file_name = 'odoo.conf'
+            if self.odoo_image_id:
+                if self.odoo_image_id.odoo_config_file:
+                    config_file_name = self.odoo_image_id.odoo_config_file
+            conf_file_path = os.path.join(conf_path, config_file_name)
             logfile = os.path.join(conf_path, 'odoo.log')
             data_dir = os.path.join(base_path, 'data_dir')
             if self.sources_type == 'use_from':
@@ -547,7 +556,13 @@ class instance(models.Model):
         self.base_path = base_path
         self.conf_file_path = conf_file_path
         self.logfile = logfile
-        self.container_logfile = os.path.join('/etc/odoo/', 'odoo.log')
+        container_log_file = ''
+        if self.odoo_image_id:
+            if self.odoo_image_id.odoo_log_file:
+                container_log_file = self.odoo_image_id.odoo_log_file
+        else:
+            container_log_file = os.path.join('/var/log/odoo/', 'odoo.log')
+        self.container_logfile = container_log_file
         self.data_dir = data_dir
 
 # Actions
@@ -600,7 +615,7 @@ class instance(models.Model):
             self.update_conf_file()
         self.run_odoo_service()
         self.action_activate()
-
+    
     @api.one
     def get_commands(self):
 
@@ -634,8 +649,9 @@ class instance(models.Model):
         if self.limit_time_real:
             odoo_volume_links += '-e LIMIT_TIME_REAL=%s ' % self.limit_time_real
         server_mode_value = self.database_type_id.server_mode_value
-        odoo_volume_links += '-e SERVER_MODE=%s ' % (
-            server_mode_value or '')
+        if server_mode_value:
+            odoo_volume_links += '-e SERVER_MODE=%s ' % (
+                server_mode_value or '')
         if self.module_load:
             odoo_volume_links += '-e SERVER_WIDE_MODULES=%s ' % (
                 self.module_load)
@@ -1020,17 +1036,20 @@ class instance(models.Model):
 
     @api.one
     def update_conf_file(self):
+        use_aeroo_docs = False
         _logger.info("Updating conf file")
         self.environment_id.server_id.get_env()
 
         # remove odoo service if exists
         self.remove_odoo_service()
-
+        
+        require.directory(self.conf_path, use_sudo=True, mode='777')
+        
         if not exists(self.environment_id.path, use_sudo=True):
             raise except_orm(_('No Environment Path!'), _(
                 "Environment path '%s' does not exists. Please create it "
                 "first!") % (self.environment_id.path))
-
+        
         # Remove file if it already exists, we do it so we can put back some
         # booelan values as unaccent
         if exists(self.conf_file_path, use_sudo=True):
@@ -1043,77 +1062,52 @@ class instance(models.Model):
                 "Running update conf command: '%s'" % self.update_conf_cmd)
             sudo(self.update_conf_cmd)
         except Exception, e:
-            raise ValidationError(_(
-                "Can not create/update configuration file, "
-                "this is what we get: \n %s") % (
-                e))
-        sed(self.conf_file_path,
-            '(admin_passwd).*', 'admin_passwd = ' + self.admin_pass,
-            use_sudo=True)
+            raise ValidationError(_("Can not create/update configuration file, this is what we get: \n %s") % (e))
+        
+        sed(self.conf_file_path, '(admin_passwd).*', 'admin_passwd = ' + self.admin_pass, use_sudo=True)
+        if self.odoo_image_id.prefix:
+            if ':aeroo' in self.odoo_image_id.prefix:                
+                use_aeroo_docs = True
+        
+        if use_aeroo_docs:
+            # add aeroo conf to server conf
+            # we run append first to ensure key exist and then sed
+            append(self.conf_file_path, 'aeroo.docs_enabled = ', partial=True, use_sudo=True)
+            server_mode_value = self.database_type_id.server_mode_value or ''
+            sed(self.conf_file_path, '(aeroo.docs_enabled).*', 'aeroo.docs_enabled = True', use_sudo=True)
 
-        # add aeroo conf to server conf
-        # we run append first to ensure key exist and then sed
-        append(
-            self.conf_file_path,
-            'aeroo.docs_enabled = ', partial=True, use_sudo=True)
+            append(self.conf_file_path, 'aeroo.docs_host = ', partial=True, use_sudo=True)
+            server_mode_value = self.database_type_id.server_mode_value or ''
+            sed(self.conf_file_path, '(aeroo.docs_host).*', 'aeroo.docs_host = aeroo', use_sudo=True)
+        
+        add_certificates = False
+        if exists(self.server_id.afip_homo_pkey_file, use_sudo=True) and exists(self.server_id.afip_homo_cert_file, use_sudo=True) and exists(self.server_id.afip_prod_pkey_file, use_sudo=True) \
+            and exists(self.server_id.afip_prod_cert_file, use_sudo=True):
+            add_certificates = True
+            
         server_mode_value = self.database_type_id.server_mode_value or ''
-        sed(self.conf_file_path,
-            '(aeroo.docs_enabled).*', 'aeroo.docs_enabled = True',
-            use_sudo=True)
-
-        append(
-            self.conf_file_path,
-            'aeroo.docs_host = ', partial=True, use_sudo=True)
-        server_mode_value = self.database_type_id.server_mode_value or ''
-        sed(self.conf_file_path,
-            '(aeroo.docs_host).*', 'aeroo.docs_host = aeroo',
-            use_sudo=True)
-
-        # add certificates to server conf
-        # we run append first to ensure key exist and then sed
-        append(
-            self.conf_file_path,
-            'server_mode = ', partial=True, use_sudo=True)
-        server_mode_value = self.database_type_id.server_mode_value or ''
-        sed(self.conf_file_path,
-            '(server_mode).*', 'server_mode = %s' % server_mode_value,
-            use_sudo=True)
-
-        append(
-            self.conf_file_path,
-            'afip_homo_pkey_file = ', partial=True, use_sudo=True)
-        if self.server_id.afip_homo_pkey_file:
-            sed(self.conf_file_path,
-                '(afip_homo_pkey_file).*',
-                'afip_homo_pkey_file = ' + self.server_id.afip_homo_pkey_file,
-                use_sudo=True)
-
-        append(
-            self.conf_file_path,
-            'afip_homo_cert_file = ', partial=True, use_sudo=True)
-        if self.server_id.afip_homo_cert_file:
-            sed(self.conf_file_path,
-                '(afip_homo_cert_file).*',
-                'afip_homo_cert_file = ' + self.server_id.afip_homo_cert_file,
-                use_sudo=True)
-
-        append(
-            self.conf_file_path,
-            'afip_prod_pkey_file = ', partial=True, use_sudo=True)
-        if self.server_id.afip_prod_pkey_file:
-            sed(self.conf_file_path,
-                '(afip_prod_pkey_file).*',
-                'afip_prod_pkey_file = ' + self.server_id.afip_prod_pkey_file,
-                use_sudo=True)
-
-        append(
-            self.conf_file_path,
-            'afip_prod_cert_file = ', partial=True, use_sudo=True)
-        if self.server_id.afip_prod_cert_file:
-            sed(self.conf_file_path,
-                '(afip_prod_cert_file).*',
-                'afip_prod_cert_file = ' + self.server_id.afip_prod_cert_file,
-                use_sudo=True)
+        if server_mode_value:
+            append(self.conf_file_path, 'server_mode = ', partial=True, use_sudo=True)
+            sed(self.conf_file_path, '(server_mode).*', 'server_mode = %s' % server_mode_value, use_sudo=True)
+        
+        if add_certificates:
+            # add certificates to server conf
+            # we run append first to ensure key exist and then sed
+            append(self.conf_file_path, 'afip_homo_pkey_file = ', partial=True, use_sudo=True)
+            if self.server_id.afip_homo_pkey_file:
+                sed(self.conf_file_path, '(afip_homo_pkey_file).*', 'afip_homo_pkey_file = ' + self.server_id.afip_homo_pkey_file, use_sudo=True)
+    
+            append(self.conf_file_path, 'afip_homo_cert_file = ', partial=True, use_sudo=True)
+            if self.server_id.afip_homo_cert_file:
+                sed(self.conf_file_path, '(afip_homo_cert_file).*', 'afip_homo_cert_file = ' + self.server_id.afip_homo_cert_file, use_sudo=True)
+    
+            append(self.conf_file_path, 'afip_prod_pkey_file = ', partial=True, use_sudo=True)
+            if self.server_id.afip_prod_pkey_file:
+                sed(self.conf_file_path, '(afip_prod_pkey_file).*', 'afip_prod_pkey_file = ' + self.server_id.afip_prod_pkey_file, use_sudo=True)
+    
+            append(self.conf_file_path, 'afip_prod_cert_file = ', partial=True, use_sudo=True)
+            if self.server_id.afip_prod_cert_file:
+                sed(self.conf_file_path, '(afip_prod_cert_file).*', 'afip_prod_cert_file = ' + self.server_id.afip_prod_cert_file, use_sudo=True)
 
     @api.one
     def run_all(self):
