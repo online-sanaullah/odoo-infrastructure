@@ -1234,7 +1234,7 @@ class instance(models.Model):
                 self.service_file, e))
 
     @api.one
-    def update_nginx_site(self, instance_ip_address='127.0.0.1', instance_xmlrpc_port=None, instance_longpolling_port=None):
+    def update_nginx_site(self, context={}, instance_ip_address='127.0.0.1', instance_xmlrpc_port=None, instance_longpolling_port=None):
         _logger.info("Updating nginx site")
         if not self.main_hostname:
             raise ValidationError(_(
